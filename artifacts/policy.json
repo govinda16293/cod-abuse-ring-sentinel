@@ -1,0 +1,38 @@
+{
+  "ring_grouped": {
+    "selected_on": "validation fold of the ring_grouped split",
+    "single_threshold": 0.2033898305084746,
+    "single_threshold_cost_per_1000": 13313.121789055285,
+    "band_lo": 0.034305084745762715,
+    "band_hi": 0.34406779661016945,
+    "band_cost_per_1000": 9198.436831412855,
+    "band_pass_share": 0.9518006985987875,
+    "band_review_share": 0.021259083791705144,
+    "band_action_share": 0.026940217609507367,
+    "review_capacity_constraint": 0.05,
+    "baseline_do_nothing_per_1000": 140804.4164291163,
+    "baseline_block_all_cod_per_1000": 460094.50723892875,
+    "val_n": 49814,
+    "val_positives": 1476,
+    "saving_vs_do_nothing_per_1000": 131605.97959770344,
+    "saving_vs_do_nothing_pct": 93.4672242073859
+  },
+  "temporal": {
+    "selected_on": "validation fold of the temporal split",
+    "single_threshold": 0.06521739130434782,
+    "single_threshold_cost_per_1000": 14435.602564297094,
+    "band_lo": 0.024203389830508473,
+    "band_hi": 0.5093220338983051,
+    "band_cost_per_1000": 9957.035824292541,
+    "band_pass_share": 0.9288748956831804,
+    "band_review_share": 0.03819892269175328,
+    "band_action_share": 0.032926181625066386,
+    "review_capacity_constraint": 0.05,
+    "baseline_do_nothing_per_1000": 180363.00735907746,
+    "baseline_block_all_cod_per_1000": 454786.46706623177,
+    "val_n": 26362,
+    "val_positives": 931,
+    "saving_vs_do_nothing_per_1000": 170405.9715347849,
+    "saving_vs_do_nothing_pct": 94.47944677232539
+  }
+}

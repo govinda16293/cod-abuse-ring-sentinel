@@ -1,0 +1,54 @@
+{
+  "selected": "C_stable_only",
+  "criterion": "minimum expected rupee cost on an out-of-period fold (months 10-12); test set not consulted",
+  "results": [
+    {
+      "variant": "A_pre_improvement",
+      "n_features": 55,
+      "fit_n": 79672,
+      "cal_n": 11567,
+      "sel_n": 40107,
+      "sel_base_rate": 0.03041863016431047,
+      "pr_auc": 0.8701421426504322,
+      "p_at_r70": 0.9553941908713693,
+      "precision": 0.9252506836827712,
+      "recall": 0.8319672131147541,
+      "review_share": 0.007081058169396863,
+      "cost_per_1000": 15262.435964594708,
+      "band_lo": 0.034305084745762715,
+      "band_hi": 0.3
+    },
+    {
+      "variant": "B_plus_rate_features",
+      "n_features": 63,
+      "fit_n": 79672,
+      "cal_n": 11567,
+      "sel_n": 40107,
+      "sel_base_rate": 0.03041863016431047,
+      "pr_auc": 0.8727609151854396,
+      "p_at_r70": 0.9586129753914989,
+      "precision": 0.9177330895795247,
+      "recall": 0.8229508196721311,
+      "review_share": 0.004338394793926247,
+      "cost_per_1000": 18689.29596369711,
+      "band_lo": 0.04440677966101694,
+      "band_hi": 0.3
+    },
+    {
+      "variant": "C_stable_only",
+      "n_features": 49,
+      "fit_n": 79672,
+      "cal_n": 11567,
+      "sel_n": 40107,
+      "sel_base_rate": 0.03041863016431047,
+      "pr_auc": 0.8789999293355107,
+      "p_at_r70": 0.9557713052858684,
+      "precision": 0.9367088607594937,
+      "recall": 0.7885245901639344,
+      "review_share": 0.011269853142842895,
+      "cost_per_1000": 14309.024783504126,
+      "band_lo": 0.07471186440677965,
+      "band_hi": 0.34406779661016945
+    }
+  ]
+}

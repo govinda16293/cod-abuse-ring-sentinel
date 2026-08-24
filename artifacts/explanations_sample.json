@@ -1,0 +1,44 @@
+[
+  {
+    "order_id": 195,
+    "probability": 0.1015625,
+    "band": "review",
+    "writer": "template",
+    "explanation": "Flagged for review at a calibrated abuse probability of 0.102. The strongest single factor is that the account is 56 days old. Supporting signals: the account is 56 days old; the oldest account in the cluster is 56 days old; the average account in the cluster is 56 days old; this pincode is 0.00% of all marketplace orders so far; the cart is Rs 2450. What this does not establish: This account has no order history, so every behavioural signal is absent; the score rests entirely on network structure. No identity links were found at all; this flag is behavioural only and is the weakest kind of evidence this system produces."
+  },
+  {
+    "order_id": 227,
+    "probability": 0.03686635944700461,
+    "band": "review",
+    "writer": "template",
+    "explanation": "Flagged for review at a calibrated abuse probability of 0.037. The strongest single factor is that the account is 35 days old. Supporting signals: the account is 35 days old; the oldest account in the cluster is 35 days old; the average account in the cluster is 35 days old; this pincode is 0.00% of all marketplace orders so far; this pincode's settled return rate is 12%. What this does not establish: This account has no order history, so every behavioural signal is absent; the score rests entirely on network structure. No identity links were found at all; this flag is behavioural only and is the weakest kind of evidence this system produces."
+  },
+  {
+    "order_id": 360,
+    "probability": 0.1015625,
+    "band": "review",
+    "writer": "template",
+    "explanation": "Flagged for review at a calibrated abuse probability of 0.102. The strongest single factor is that the account is 9 days old. Supporting signals: the account is 9 days old; the average account in the cluster is 9 days old; the oldest account in the cluster is 9 days old; the cart is 3.1x the running average for its category; the cart is Rs 2229. What this does not establish: This account has no order history, so every behavioural signal is absent; the score rests entirely on network structure. No identity links were found at all; this flag is behavioural only and is the weakest kind of evidence this system produces."
+  },
+  {
+    "order_id": 675,
+    "probability": 0.04411764705882353,
+    "band": "review",
+    "writer": "template",
+    "explanation": "Flagged for review at a calibrated abuse probability of 0.044. The strongest single factor is that the cart is Rs 11863. Supporting signals: the cart is Rs 11863; the account is 54 days old; the average account in the cluster is 54 days old; the oldest account in the cluster is 54 days old; this pincode is 0.30% of all marketplace orders so far. What this does not establish: This account has no order history, so every behavioural signal is absent; the score rests entirely on network structure. No identity links were found at all; this flag is behavioural only and is the weakest kind of evidence this system produces."
+  },
+  {
+    "order_id": 995,
+    "probability": 0.03686635944700461,
+    "band": "review",
+    "writer": "template",
+    "explanation": "Flagged for review at a calibrated abuse probability of 0.037. The strongest single factor is that the account is 7 days old. Supporting signals: the account is 7 days old; the average account in the cluster is 7 days old; the oldest account in the cluster is 7 days old; the cart is 2.8x the running average for its category; the cart is Rs 2508. What this does not establish: This account has no order history, so every behavioural signal is absent; the score rests entirely on network structure. No identity links were found at all; this flag is behavioural only and is the weakest kind of evidence this system produces."
+  },
+  {
+    "order_id": 1209,
+    "probability": 0.3333333333333333,
+    "band": "review",
+    "writer": "template",
+    "explanation": "Flagged for review at a calibrated abuse probability of 0.333. The strongest single factor is that this cluster is 0.083% of all marketplace orders so far. Supporting signals: this cluster is 0.083% of all marketplace orders so far; the account is 2 days old; the average account in the cluster is 2 days old; the oldest account in the cluster is 2 days old; the cart is Rs 21810. What this does not establish: This account has no order history, so every behavioural signal is absent; the score rests entirely on network structure. No identity links were found at all; this flag is behavioural only and is the weakest kind of evidence this system produces."
+  }
+]

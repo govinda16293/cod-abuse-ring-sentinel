@@ -1,0 +1,52 @@
+{
+  "n_orders": 508349,
+  "n_customers": 122755,
+  "n_addresses": 140309,
+  "n_devices": 149650,
+  "n_phones": 122755,
+  "n_rings": 512,
+  "n_households": 6032,
+  "window": [
+    "2025-01-01",
+    "2026-07-01"
+  ],
+  "cod_orders": 248244,
+  "cod_share_realised": 0.4883338021713429,
+  "abuse_orders_true": 7857,
+  "abuse_orders_observed": 8013,
+  "abuse_rate_all_orders_observed": 0.01576279288441602,
+  "abuse_rate_cod_orders_observed": 0.030647266399187897,
+  "abuse_rate_cod_orders_true": 0.030018852419393824,
+  "abuse_rate_prepaid_orders_true": 0.0015570634935891275,
+  "abuse_orders_on_prepaid_true": 405,
+  "abuse_rate_customers_all": 0.024247558037959607,
+  "abuse_rate_customers_cod_active": 0.027711540217755275,
+  "hard_negative_customers": 12007,
+  "hard_negative_share": 0.0978127163862979,
+  "label_noise_fn": 0.03,
+  "label_noise_fp_rel": 0.05,
+  "labels_flipped_to_0": 217,
+  "labels_flipped_to_1": 373,
+  "label_noise_share_of_positive_labels": 0.046549357294396604,
+  "temporal_boundary": "2026-01-01",
+  "temporal_rings_dropped": 63,
+  "temporal_orders_dropped": 813,
+  "split_counts": {
+    "train": 304572,
+    "val": 101966,
+    "test": 101811
+  },
+  "temporal_counts": {
+    "train": 272959,
+    "test": 234577,
+    "drop": 813
+  },
+  "ring_type_orders": {
+    "R2_address_fuzz": 2325,
+    "R1_shared_device": 1922,
+    "R3_phone_family": 1457,
+    "R5_hybrid": 1197,
+    "R4_burst_value": 956
+  },
+  "seed": 20260905
+}

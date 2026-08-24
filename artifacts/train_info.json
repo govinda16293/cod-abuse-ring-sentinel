@@ -1,0 +1,20 @@
+{
+  "primary": {
+    "n_train": 148525,
+    "n_val": 49814,
+    "train_positives": 4545,
+    "val_positives": 1476,
+    "val_pr_auc": 0.8948086166499195,
+    "val_roc_auc": 0.9782051180704616,
+    "val_base_rate": 0.02963022443489782
+  },
+  "temporal": {
+    "n_train": 78045,
+    "n_val": 26362,
+    "train_positives": 3825,
+    "val_positives": 931,
+    "val_pr_auc": 0.9146030469481897,
+    "val_roc_auc": 0.986564031373028,
+    "val_base_rate": 0.03531598513011153
+  }
+}
