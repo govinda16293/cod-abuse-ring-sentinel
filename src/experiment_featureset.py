@@ -97,6 +97,7 @@ def run_variant(df, cols, name):
 
 
 def main():
+    os.makedirs(ARTIFACT_DIR, exist_ok=True)
     df = load_modelling_frame()
     variants = [
         ("A_pre_improvement", [c for c in FEATURE_COLUMNS

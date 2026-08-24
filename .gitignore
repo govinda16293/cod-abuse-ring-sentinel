@@ -9,3 +9,8 @@ data/*.npy
 !data/test_set.sha256
 artifacts/*.pkl
 artifacts/*.parquet
+# Regenerable derived outputs. Small metrics, curves and figures ARE committed so
+# a reviewer can read the results without running anything; these two are just
+# large intermediate dumps that run_all.py recreates.
+artifacts/explanation_payloads.json
+artifacts/band_sweep_*.csv
