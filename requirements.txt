@@ -1,0 +1,16 @@
+# Pinned. shap and numpy are pinned as a PAIR: shap<=0.46 cannot import against
+# numpy>=2.2 (np.inexact dtype conversion was removed), so moving either one
+# alone breaks the attribution layer.
+numpy==2.4.6
+pandas==2.2.3
+pyarrow==17.0.0
+scikit-learn==1.5.2
+lightgbm==4.5.0
+shap==0.48.0
+matplotlib==3.9.2
+streamlit==1.39.0
+scipy==1.17.1
+# Optional: only needed for the LLM explanation writer. Without it (or without
+# ANTHROPIC_API_KEY) the pipeline falls back to a deterministic template writer
+# and everything else runs unchanged.
+anthropic==0.39.0

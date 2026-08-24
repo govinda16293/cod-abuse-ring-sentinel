@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+# Generated data is large and fully reproducible from the seed in src/config.py.
+# The frozen test-set hash IS committed so a reviewer can verify we did not move it.
+data/*.parquet
+data/*.npy
+!data/test_set.sha256
+artifacts/*.pkl
+artifacts/*.parquet
