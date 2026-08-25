@@ -425,7 +425,9 @@ pip install -r requirements.txt
 python run_all.py
 ```
 
-2-4 minutes on a laptop, from nothing to metrics (measured: 120s warm, 220s cold). Generates the data, freezes and
+About 4 minutes on a laptop, from nothing to metrics (measured 239s, including
+the cost sensitivity sweep and the flat-signup diagnostic; the core six phases
+alone are ~2 minutes). Generates the data, freezes and
 hashes the test set, builds features, **proves causality before training**,
 trains, selects thresholds on validation, then evaluates once.
 
