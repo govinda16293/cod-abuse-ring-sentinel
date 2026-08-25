@@ -14,3 +14,5 @@ artifacts/*.parquet
 # large intermediate dumps that run_all.py recreates.
 artifacts/explanation_payloads.json
 artifacts/band_sweep_*.csv
+# Second dataset built only by the flat-signup generator diagnostic.
+data_flat/

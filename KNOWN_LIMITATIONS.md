@@ -54,31 +54,42 @@ shares an address — which would bite harder than a random flip.
 
 ## 2. Where the evaluation is weaker than it looks
 
-### Temporal robustness is poor, and the review queue breaks its constraint
+### Temporal robustness — mostly a generator artefact, and I got this wrong first
 
-| | Ring-grouped | Temporal (months 13–18) |
-|---|---|---|
-| PR-AUC | 0.8809 | 0.6712 |
-| Precision | 0.9316 | 0.3994 |
-| Review share | 2.32% | **9.72%** |
+| | Ring-grouped | Temporal, ramped | Temporal, flat signup |
+|---|---|---|---|
+| PR-AUC | 0.8809 | 0.6712 | 0.8590 |
+| Precision | 0.9316 | 0.3994 | 0.9197 |
+| Review share | 2.32% | **9.72%** | 0.70% |
 
-The 5% manual-review capacity constraint was enforced during band selection and
-is then **violated on the temporal holdout**. A system that quietly doubles its
-own queue when the population shifts is not deployable as-is.
+On the headline (ramped) dataset the 5% manual-review capacity constraint is
+violated on the temporal holdout, and precision falls 2.3x. I reported that as
+the project's most important finding.
 
 Diagnosis (measured, not assumed): 99.3% of temporal false positives come from
 customers unseen in training, median tenure 12.6 days, median component size 1.00
 — no identity links at all. The model learned the R4 signature and applies it to
 a larger population of legitimate new accounts.
 
-### That gap is partly my generator's fault
+Then I tested whether that larger population was real or manufactured. In the
+headline generator, order count per customer does not scale with how long the
+customer has existed, so late signups compress all their orders into a few days
+— producing exactly the "new account ordering fast" shape. Regenerating once with
+exposure-adjusted ordering (`flat_signup=True`, `src/diagnostic_flat_signup.py`,
+written to `data_flat/`, primary test set untouched) recovers temporal precision
+to 0.9197 and drops the review queue to 0.70%.
 
-Signups are spread across the 18-month window, so the share of brand-new accounts
-rises with calendar time — COD volume goes from 8.7k in month 1 to 27.6k in month
-18, and the observed abuse rate falls from 3.8% to 1.6%. A real merchant with a
-stable new-account rate would show a smaller gap. **I would not quote the 2.3x
-precision drop as a production forecast.** The direction is real; the magnitude
-is inflated by how I built the data.
+**So the honest statement is the opposite of what I first wrote.** It is not "the
+direction is real and the magnitude is inflated". Most of the collapse was the
+artefact. What remains is about 2 points of PR-AUC (0.8590 vs 0.8809) and 1.2
+points of precision over a six-month horizon — and since volume still ramps 1.49x
+even in the flat world, that residual is an upper bound.
+
+The R4 dependency is still real and still the underlying mechanism: R4 recall on
+the temporal split is 0.5101 ramped and 0.6854 flat, both well below the other
+four signatures. A detector leaning on "new account + COD + high value" is
+genuinely exposed to any shift in the new-account mix. That exposure is worth
+monitoring in production even though my measurement of it was inflated.
 
 ### The test set was scored three times
 
@@ -160,13 +171,20 @@ mechanism to split a component that was wrongly merged.
 
 - **Reviewer accuracy is a constant (88%).** Real reviewers are better on some
   ring types than others, and their accuracy is correlated with the same features
-  the model uses.
+  the model uses. Swept 70–95% in
+  [docs/cost_sensitivity.md](docs/cost_sensitivity.md); below ~80% the shipped
+  bands should be re-selected rather than inherited.
 - **No feedback loop.** Auto-blocked orders never produce a return outcome, so in
   production the training data would progressively stop containing the cases the
   model is most confident about. That needs a deliberate exploration hold-out and
   there is none here.
 - **Isotonic calibration is fit once and never refreshed.** The temporal result
   is largely a stale-calibration result.
+- **Five cost constants have no published figure at all** (`product_loss_fraction`,
+  `churn_prob_given_blocked`, `customer_residual_value_inr`, `review_precision`,
+  `max_review_share`). See [docs/cost_model.md](docs/cost_model.md) for which are
+  sourced and which are asserted. The sensitivity analysis is the defence, not the
+  constants.
 - **Cost constants are my estimates.** `product_loss_fraction` (0.72),
   `churn_prob_given_blocked` (0.22) and `customer_residual_value_inr` (₹1,450)
   move the threshold more than any hyperparameter. They should come from a

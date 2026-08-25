@@ -218,8 +218,25 @@ depends on thresholding a probability that means what it says.
 
 ## Phase 4 — the cost policy
 
-Every constant is in `CostConfig` with its defence. Costs are per order and scale
-with order value, so the optimum is swept rather than derived.
+Every constant is in `CostConfig`, now tagged `[SOURCED]`, `[DERIVED]` or
+`[ASSUMED]`, with the published figure behind it. Full derivation against
+Delhivery / Shiprocket rate cards and category margin benchmarks:
+[docs/cost_model.md](docs/cost_model.md). Four of eleven constants are sourced,
+two derived from published labour rates, and five are assumptions with no public
+figure. Reverse shipping (₹85, i.e. 113% of forward against a cited 80–100% RTO
+band) and `gross_margin_rate` (a contribution margin, not a gross one) are both
+flagged as imperfect and deliberately left unchanged — altering them would change
+band selection and require re-scoring the frozen test set.
+
+The defence of the result is therefore [docs/cost_sensitivity.md](docs/cost_sensitivity.md):
+28 cost worlds, every economic constant at ±50%, reviewer accuracy 70–95% and
+review capacity 2–10%, each re-running selection from scratch on validation. The
+three-band policy beats both baselines in all 28, and the band structure never
+collapses. The only real breaking point is a review capacity below 2.13%, where
+the shipped policy becomes infeasible rather than merely suboptimal.
+
+Costs are per order and scale with order value, so the optimum is swept rather
+than derived.
 
 Three bands, selected jointly on validation under a hard constraint that no more
 than 5% of volume may go to humans:

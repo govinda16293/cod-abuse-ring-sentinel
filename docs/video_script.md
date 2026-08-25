@@ -107,22 +107,23 @@ Target 5:00. Timings are cumulative. Numbers are read straight from
 > Two things I'd want to be asked about.
 >
 > First: I ran a second evaluation on a temporal holdout — train on months one to
-> twelve, test on thirteen to eighteen. Precision falls from point nine three two
-> to point three nine nine, and the review queue breaks its own five percent
-> capacity limit. I went and found out why instead of reporting a mystery:
-> ninety-nine percent of those false positives are accounts never seen in
-> training, median age twelve days, with *no* identity links at all. The model
-> learned the burst-value signature and meets a bigger population of legitimate
-> new accounts. Same root cause as the thirty-eight percent, seen from the other
-> side.
+> twelve, test on thirteen to eighteen. Precision fell from point nine three two
+> to point three nine nine. I called that my headline finding. Then I checked
+> whether it was real — and mostly it wasn't. My generator gave every customer the
+> same order count regardless of signup date, so late signups crammed their orders
+> into a few days and manufactured exactly the population the model over-flags.
+> Regenerate with that fixed, and temporal precision comes back to point nine two.
+> About two points of PR-AUC of genuine six-month degradation survive, not
+> twenty-one. I reported the wrong version first and the correction is in the
+> README and the log.
 >
-> Second: I tried to fix it with scale-free features, selected on an
-> out-of-period fold using only data up to month twelve. It didn't work — a
-> one-to-three month gap doesn't contain the shift that shows up at month
-> thirteen. I kept the change anyway, because switching back after seeing test
-> results is exactly the failure this repo is built to avoid. And a unit test
-> later caught a real bug in my address normaliser that was quietly costing six
-> points of recall on the fuzzing rings. That's in the log too.
+> Second: the cost model. Four constants carry the whole result, and five of the
+> eleven have no published figure anywhere — so I swept all of them, plus or minus
+> fifty percent, twenty-eight cost worlds, re-selecting thresholds from scratch
+> each time on validation. The three-band policy beats both baselines in all
+> twenty-eight. The only genuine breaking point is review capacity below two point
+> one three percent, where the shipped policy stops being feasible. The rate cards
+> I derived against are cited in the repo.
 >
 > What I'd do next: recalibrate on a trailing window, monitor the new-account
 > segment's flag rate on its own, and replace address string-matching with real

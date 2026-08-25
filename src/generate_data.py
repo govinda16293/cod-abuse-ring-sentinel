@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from config import GEN  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(ROOT, "data")
+DATA_DIR = os.environ.get("SENTINEL_DATA_DIR") or os.path.join(ROOT, "data")
 
 SEGMENTS = ["casual", "frequent", "bargain", "premium"]
 SEG_P = np.array([0.45, 0.25, 0.20, 0.10])
@@ -269,6 +269,21 @@ class Generator:
                            if rng.random() < 0.5 else self._home_address()[0])
 
         lam = cust.segment.map(SEG_LAMBDA).to_numpy() * cust.lam_mult.to_numpy()
+        if cfg.flat_signup:
+            # DIAGNOSTIC MODE. In the default generator every customer draws the
+            # same expected order count regardless of when they signed up, so a
+            # customer who joins five days before the window ends crams all of
+            # them into those five days. That inflates both order volume and the
+            # new-account share at late calendar times, which is exactly the
+            # confound suspected of manufacturing the temporal precision drop.
+            #
+            # Here each customer's rate is scaled by the fraction of the window
+            # they were actually around for, so orders per calendar day are flat.
+            su = cust.signup_ts.to_numpy().astype("datetime64[s]").astype(np.int64)
+            t0 = np.int64(self.start.value // 10**9)
+            t1 = np.int64(self.end.value // 10**9)
+            exposure = np.clip((t1 - np.maximum(su, t0)) / float(t1 - t0), 0.0, 1.0)
+            lam = lam * exposure
         scale = cfg.n_orders_target / max(lam.sum(), 1.0)
         counts = rng.poisson(lam * scale)
         cidx = np.repeat(np.arange(n), counts)
@@ -535,6 +550,9 @@ def make_temporal_split(orders, start, months_train=12):
 def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     cfg = GEN
+    if os.environ.get("SENTINEL_FLAT_SIGNUP") == "1":
+        cfg.flat_signup = True
+        print("[gen] FLAT-SIGNUP DIAGNOSTIC MODE - not the headline dataset")
     if os.environ.get("SENTINEL_QUICK") == "1":
         # smoke-test size. Ring counts get small, so per-ring-type recall from a
         # quick run is noisy and must not be quoted.

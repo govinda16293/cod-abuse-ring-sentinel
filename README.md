@@ -44,6 +44,19 @@ And the other direction, because blocking a real customer is not free:
 | Churn (22% never return × ₹1,450 residual value) | ₹319 |
 | **False positive cost** | **₹319 + 0.061 V** |
 
+Every constant above is re-derived against published Indian 3PL rate cards and
+category margin benchmarks in **[docs/cost_model.md](docs/cost_model.md)**, with
+sources. The honest split: of eleven constants, four are sourced to published
+figures, two are derived from published labour rates, and **five have no public
+figure at all** and are stated assumptions. Two are flagged as wrong-ish and left
+unchanged — reverse shipping at ₹85 is 113% of forward, above the cited 80–100%
+RTO band, and `gross_margin_rate` is really a *contribution* margin, not a gross
+one. COD collection fees ("₹40 or 2%, whichever is higher") are omitted entirely,
+which understates the cost of a miss.
+
+That is why the defence of this result is not "the constants are right" — it is
+**[docs/cost_sensitivity.md](docs/cost_sensitivity.md)**, summarised in §5.
+
 On a ₹2,000 order that is **₹1,640 for a miss against ₹441 for a false alarm** —
 a 3.7:1 asymmetry. F1 implicitly assumes 1:1. That single fact is why this repo
 selects its threshold on a cost curve, and it moves the operating point a long
@@ -250,9 +263,19 @@ flagged than an ordinary customer, and joint families are routed to review at
 | Review share | 2.32% | **9.72%** |
 | Cost / 1,000 | ₹11,617 | ₹26,294 |
 
-**The two splits disagree badly, and this is the most important number in the
-repo.** Recall barely moves (0.807 -> 0.753). Precision falls by 2.3x, and the
-review queue blows through its 5% capacity constraint.
+The base-rate gap is not a mystery and is worth stating up front: the
+ring-grouped test samples groups uniformly across all 18 months so it inherits the
+dataset-wide COD abuse rate (3.06%), whereas the temporal test covers only months
+13–18, where benign COD volume has ramped 3.18x while ring campaigns stayed
+uniform (dropping the rate to 2.19%) and then loses a further 746 orders — 727 of
+them abusive — when straddling rings are removed to keep rings non-crossing,
+landing at 1.58%.
+
+**The two splits disagree badly.** Recall barely moves (0.807 -> 0.753).
+Precision falls by 2.3x, and the review queue blows through its 5% capacity
+constraint. I originally reported this as the headline finding of the project.
+**A follow-up diagnostic showed most of it was my generator's fault** — see
+"Flat-signup diagnostic" below, and read that before quoting these numbers.
 
 I diagnosed it rather than reporting it as a mystery. On the temporal test set:
 
@@ -268,11 +291,53 @@ signature — and in months 13–18 it meets a far larger population of legitima
 brand-new accounts and flags them. It is the same root cause as the R4 recall
 number, seen from the other side.
 
-**Caveat I have to state:** the new-account ramp is partly an artefact of my
-generator. Signups are spread across the window, so the share of brand-new
-accounts rises with calendar time (8.7k COD orders in month 1, 27.6k in month
-18). A real merchant with a stable new-account rate would see a smaller gap than
-the one I am reporting. I would not quote the 2.3x as a production forecast.
+### Flat-signup diagnostic — how much of that was real?
+
+In the headline generator every customer draws the same expected order count
+regardless of signup date, so a customer joining five days before the window ends
+crams all of them into those five days. That inflates both order volume and the
+supply of accounts that are simultaneously brand-new and ordering fast — which is
+the R4 signature the model latched onto.
+
+So I regenerated **once** with `flat_signup=True`, which scales each customer's
+order rate by the fraction of the window they were present for. Same seed, same
+rings, same hard negatives, same label noise, same feature code, same model, same
+band-selection procedure. It writes to `data_flat/`. It does read `data/` for the
+ramped side's descriptive statistics, but **it never scores the ring-grouped
+frozen test set, fits nothing on it, and selects no threshold from it** —
+`data/test_set.sha256` is byte-identical before and after a run.
+
+| Temporal split | Ramped (headline) | Flat signup | Ring-grouped, for reference |
+|---|---|---|---|
+| Base rate | 1.58% | 1.92% | 3.18% |
+| PR-AUC | 0.6712 | **0.8590** | 0.8809 |
+| Precision (auto-action) | 0.3994 | **0.9197** | 0.9316 |
+| Recall (auto-action) | 0.7527 | 0.8167 | 0.8072 |
+| Review share | 9.72% | **0.70%** | 2.32% |
+| ₹ / 1,000 | 26,294 | 8,841 | 11,617 |
+| R4_burst_value recall | 0.5101 | 0.6854 | 0.3755 |
+| Legit test orders from unseen customers | 50.5% | 31.2% | — |
+| Median tenure, legit test orders | 331.6 d | 649.6 d | — |
+| COD orders, month 1 → month 18 | 8,683 → 27,624 | 10,837 → 16,138 | — |
+
+**This is a generator diagnostic, not a headline result**, and it does not change
+a single number in the primary table above. But it changes what those numbers
+*mean*, so:
+
+**Correction.** I previously wrote that the temporal collapse was real in
+direction and merely inflated in magnitude. That was wrong, and the diagnostic
+says so: with exposure-adjusted ordering, temporal precision recovers to 0.9197
+against a ring-grouped 0.9316, and the review queue drops to 0.70% — comfortably
+inside its constraint. **Most of the collapse was an artefact of how I built the
+data, not a property of the detector.**
+
+What survives is small and real: PR-AUC 0.8590 vs 0.8809 and precision 0.9197 vs
+0.9316. So roughly 2 points of PR-AUC of genuine degradation over a six-month
+horizon, not the 21 points originally reported. Residual volume still ramps 1.49x
+in the flat world (10.8k to 16.1k), because customers who sign up mid-window still
+contribute partial windows, so even that 2 points is an upper bound.
+
+Reproduce with `python src/diagnostic_flat_signup.py`.
 
 ### Feature-set selection, done without touching test
 
@@ -297,6 +362,41 @@ project — pre-improvement, post-improvement, and after the address bug fix. On
 the last is reported. No threshold, band, feature set or hyperparameter was ever
 selected using it.
 
+### Cost sensitivity — does the conclusion survive being wrong?
+
+The whole headline rests on constants I asserted, five of which have no published
+figure. So every one of them is swept, re-running threshold and band selection
+from scratch on the **validation fold** each time (the frozen test set is not
+opened by this analysis). Full table: [docs/cost_sensitivity.md](docs/cost_sensitivity.md).
+
+Swept: the fixed and variable halves of both the false-negative and false-positive
+cost at ±25% and ±50%, reviewer accuracy 70–95%, and review capacity 2–10%.
+**28 cost worlds.**
+
+| Across all 28 worlds | Result |
+|---|---|
+| 3-band policy beats the single cost-optimal threshold | **all 28** |
+| 3-band policy beats doing nothing | **all 28** |
+| 3-band structure survives (review band never collapses) | **all 28** |
+| The *as-shipped* policy also beats both baselines | **all 28** |
+| Single threshold ranges over | 0.1016 – 0.2034 |
+| Band lo / band hi range over | 0.0346–0.0804 / 0.3167–0.6167 |
+
+Worst-case regret from having shipped a policy tuned to the wrong costs: **₹745
+per 1,000 COD orders**, in the reviewer-accuracy-70% world — about 0.5% of the
+₹140,804 of loss the detector avoids on the validation fold.
+
+**Verdict: the conclusion holds across the whole range.** No ±50% perturbation of
+any economic constant flips the ordering of the three policies.
+
+**Where it does break**, precisely: **review capacity below 2.13%**. The shipped
+policy sends 2.13% of volume to humans, so a 2% cap makes it *infeasible*, not
+merely suboptimal. Above ~3% the constraint is completely slack — the 3%, 5%, 7%
+and 10% rows are identical, because the cost-optimal policy only wants ~2.1% in
+review anyway. **The 5% constraint in the shipped config never actually binds.**
+The softer spot is reviewer accuracy at or below 75%, where the optimiser shrinks
+the review band to 0.82% of volume and the shipped policy's regret peaks.
+
 ## 6. Known limitations
 
 Full list in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md). The three that matter:
@@ -309,10 +409,11 @@ Full list in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md). The three that matter
    Indian addresses include landmark directions, transliteration variance and
    missing pincodes that it will not catch. Expect it to be materially lower on
    real data.
-3. **Temporal robustness is poor** and the review queue exceeds its capacity
-   constraint under drift. The deployable answer is trailing-window
-   recalibration and per-segment flag-rate monitoring, which I cannot
-   demonstrate here without fitting on the test set.
+3. **Temporal robustness looked far worse than it is.** The reported collapse
+   (precision 0.9316 -> 0.3994) is mostly a generator artefact; with
+   exposure-adjusted signups it recovers to 0.9197. About 2 points of PR-AUC of
+   genuine six-month degradation remain. I reported the inflated version first
+   and corrected it — both are above.
 
 ## 7. How to run it
 
@@ -358,6 +459,10 @@ pipeline runs on a clean machine with no key and no network.
 | `src/explain.py` | Phase 5 — TreeSHAP attribution, LLM writer |
 | `src/evaluate.py` | Phase 5 — the single frozen-test evaluation |
 | `app/streamlit_app.py` | Phase 6 — review UI |
+| `src/cost_sensitivity.py` | ±50% sweep of every cost constant, on validation |
+| `src/diagnostic_flat_signup.py` | Generator diagnostic, writes to `data_flat/` |
+| `docs/cost_model.md` | Cost constants re-derived against published rate cards |
+| `docs/cost_sensitivity.md` | The 28-world sensitivity table and verdict |
 | `docs/leakage_audit.md` | Per-feature placement-time audit table |
 | `LOG.md` | What broke, in the order it broke |
 

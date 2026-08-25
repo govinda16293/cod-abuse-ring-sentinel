@@ -224,3 +224,107 @@ deterministic from the seed rather than accidentally reproducible.
 Final: ring-grouped PR-AUC 0.8809, precision 0.9316, recall 0.8072, cost 11,617
 per 1000 COD orders against 155,401 for no detector. Temporal PR-AUC 0.6712,
 precision 0.3994. The gap between those two is the honest headline.
+
+### 2026-08-25 - re-derived the cost constants against published rate cards
+
+The whole headline rests on four numbers I asserted. Went and looked them up.
+
+Sourced: forward shipping (Delhivery zone B-C Rs 75-150/kg; Shiprocket blended
+avg shipment Rs 36-45), RTO billed at 80-100% of forward freight, COD cart
+abandonment 45-55% vs prepaid 25-30%, apparel net margins 12-18% and gross
+40-60%, India BPO email/chat $4-8 per agent-hour at 8-15 fraud reviews/hour.
+
+Two of my constants came out wrong-ish and I left both alone rather than quietly
+fix them, because changing a cost constant changes band selection and that means
+re-scoring the frozen test set:
+  * reverse shipping Rs 85 is 113% of my forward figure, above the cited 80-100%
+    RTO ceiling. It overstates the cost of a miss, i.e. it biases toward
+    catching more.
+  * gross_margin_rate = 0.18 is really a CONTRIBUTION margin. Read as a gross
+    margin it is far too low (published gross is 40-60%). The field name is
+    misleading; documented rather than renamed.
+Also found an omission: COD collection fees ("Rs 40 or 2%, whichever is higher")
+are not in the model at all, which understates the cost of a miss and partly
+offsets the reverse-shipping error.
+
+The bigger honest finding is the split. Of eleven constants, four are sourced,
+two are derived from published labour rates, and FIVE have no public figure
+anywhere: product_loss_fraction, churn_prob_given_blocked,
+customer_residual_value_inr, review_precision, max_review_share. Nobody
+publishes what fraction of an abusive return is unrecoverable, or churn
+conditional on a payment-method block. Said so in docs/cost_model.md instead of
+inventing precision.
+
+### 2026-08-25 - swept all of them; the conclusion survives
+
+28 cost worlds: both halves of the FN and FP cost at +/-25% and +/-50%, reviewer
+accuracy 70-95%, review capacity 2-10%. Each one re-runs threshold AND band
+selection from scratch on validation. The test set is not opened.
+
+The three-band policy beats the single cost-optimal threshold and beats doing
+nothing in all 28, and the band structure never collapses. Single threshold only
+ever moves between 0.1016 and 0.2034 - the isotonic calibrator is a step
+function, so there are only a few distinct places for it to land. Worst-case
+regret from having shipped a policy tuned to the wrong costs is Rs 745 per 1000
+COD orders, about 0.5% of the loss the detector avoids.
+
+One real breaking point, and it is not one of the four economic constants: a
+review capacity below 2.13%. The shipped policy sends 2.13% of validation volume
+to humans, so at a 2% cap it is INFEASIBLE, not merely suboptimal. The flip side
+is that at 3% and above the constraint is completely slack - the 3/5/7/10% rows
+are byte-identical, because the optimiser only wants ~2.1% in review anyway. So
+the 5% capacity constraint I made a point of enforcing never actually binds. That
+is worth knowing and I would rather say it than let someone find it.
+
+### 2026-08-25 - the flat-signup diagnostic, and I have to correct myself
+
+I flagged that signups ramp across the window and said the temporal precision
+collapse was "real in direction, inflated in magnitude". I went and measured it
+properly, and that was wrong.
+
+The mechanism I had missed: order count per customer does not scale with how long
+the customer has existed. A customer who signs up five days before the window
+ends still draws the same expected number of orders, so they cram all of them
+into five days. That produces, at late calendar times, a large population of
+accounts that are simultaneously brand-new and ordering fast - which is precisely
+the R4_burst_value signature the model keys on. My generator was manufacturing
+false positives.
+
+Regenerated ONCE with flat_signup=True (order rate scaled by each customer's
+exposure fraction), into data_flat/, everything else identical. Primary frozen
+test set never read or written - checked its hash before and after, unchanged.
+
+                          ramped    flat signup   ring-grouped
+  PR-AUC                  0.6712      0.8590         0.8809
+  precision               0.3994      0.9197         0.9316
+  recall                  0.7527      0.8167         0.8072
+  review share             9.72%       0.70%          2.32%
+  cost per 1000           26,294       8,841         11,617
+  R4 recall               0.5101      0.6854         0.3755
+  unseen-customer share    50.5%       31.2%            -
+  median legit tenure     331.6d      649.6d            -
+  COD month 1 -> 18    8.7k->27.6k  10.8k->16.1k        -
+
+So temporal precision recovers to 0.9197 against a ring-grouped 0.9316, and the
+review queue drops to 0.70%, comfortably inside the constraint it was blowing
+through. Most of the collapse was my data, not the detector. What survives is
+about 2 points of PR-AUC over six months - and since volume still ramps 1.49x
+even in the flat world, even that is an upper bound.
+
+I am not deleting the original finding. It is in the README with the correction
+next to it, because "I found a scary number, then found out I had caused it" is
+the actual story and the second half is the part that took the work.
+
+Also nailed down the base-rate gap that looked unexplained: ring-grouped test is
+3.18% because it samples groups across all 18 months and inherits the
+dataset-wide 3.06%. Months 13-18 alone are 2.19% because benign COD volume ramps
+3.18x while ring campaigns stay uniform. Removing 746 straddling-ring orders (727
+of them abusive) to keep rings non-crossing takes it the rest of the way to
+1.58%.
+
+### 2026-08-25 - code frozen
+
+No further model or feature changes. Both additions are analysis-only:
+cost_sensitivity.py reads the validation fold, diagnostic_flat_signup.py writes
+to a separate data_flat/ directory. The frozen test set has still been scored
+three times, all before today.

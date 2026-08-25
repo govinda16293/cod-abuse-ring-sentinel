@@ -29,6 +29,12 @@ STAGES = [
     ("Phase 3  train calibrated scorers (ring-grouped + temporal)", "src/train.py"),
     ("Phase 4  cost-based threshold and band selection", "src/threshold.py"),
     ("Phase 5  evaluate ONCE on the frozen test set", "src/evaluate.py"),
+    # Analysis only. Neither of these opens the frozen test set: the sensitivity
+    # sweep reads the validation fold, and the diagnostic builds its own dataset
+    # in data_flat/.
+    ("Analysis  cost sensitivity, 28 worlds (validation only)", "src/cost_sensitivity.py"),
+    ("Analysis  flat-signup generator diagnostic (data_flat/)",
+     "src/diagnostic_flat_signup.py"),
 ]
 
 
@@ -69,6 +75,9 @@ def main():
   artifacts/recall_by_ring_type.csv    recall by ring signature R1-R5
   artifacts/false_positives_by_population.csv
   artifacts/policy.json                thresholds, selected on validation
+  docs/cost_model.md                   cost constants vs published rate cards
+  docs/cost_sensitivity.md             28-world sensitivity table and verdict
+  artifacts/flat_signup_diagnostic.csv generator diagnostic, NOT a headline
   artifacts/figures/                   PR, reliability, cost curves
 
   streamlit run app/streamlit_app.py   review UI

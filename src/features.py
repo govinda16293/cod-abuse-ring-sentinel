@@ -35,7 +35,7 @@ import pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(ROOT, "data")
+DATA_DIR = os.environ.get("SENTINEL_DATA_DIR") or os.path.join(ROOT, "data")
 
 DAY = 86400.0
 TAU7 = 7 * DAY

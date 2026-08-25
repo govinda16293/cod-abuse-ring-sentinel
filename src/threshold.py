@@ -25,13 +25,13 @@ from dataset import ARTIFACT_DIR, LABEL  # noqa: E402
 FIG_DIR = os.path.join(ARTIFACT_DIR, "figures")
 
 
-def sweep_single(y, p, value, n_points=400):
+def sweep_single(y, p, value, n_points=400, cost=COST):
     """Single cut-point sweep: block if p >= t, else pass. No review band."""
     ts = np.unique(np.quantile(p, np.linspace(0.0, 1.0, n_points)))
     ts = np.clip(np.concatenate([[0.0], ts, [1.0]]), 0, 1)
     rows = []
     for t in ts:
-        r = policy_cost(y, p, value, t, t)
+        r = policy_cost(y, p, value, t, t, cost)
         r["threshold"] = float(t)
         rows.append(r)
     return pd.DataFrame(rows)
