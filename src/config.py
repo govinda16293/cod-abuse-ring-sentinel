@@ -70,6 +70,10 @@ class GenConfig:
     ring_return_rate: float = 0.86
     address_fuzz_rate: float = 0.85         # P(a ring member's address is fuzzed)
 
+    # Diagnostic only. See src/diagnostic_flat_signup.py and LOG.md; never set
+    # for the headline dataset.
+    flat_signup: bool = False
+
     split_train: float = 0.60
     split_val: float = 0.20
     split_test: float = 0.20
@@ -96,26 +100,68 @@ class GenConfig:
 
 @dataclass
 class CostConfig:
+    """Rupee cost model.
+
+    Each constant is tagged [SOURCED], [DERIVED] or [ASSUMED]. Full derivation,
+    the published figures behind each one, and the places where a shipped value
+    sits outside its sourced range are in docs/cost_model.md. Robustness across
+    +/-50% on every constant is in docs/cost_sensitivity.md.
+
+    These values were NOT changed when the derivation was done. Changing them
+    changes band selection, which would require re-scoring the frozen test set.
+    """
+
     # ---- False negative: we let an abusive COD order through ----
-    # Forward shipping is paid, reverse pickup is paid, the returned item is
-    # either missing or swapped for a worthless substitute, and ops burns time.
+    # [SOURCED] Delhivery zone B-C quote Rs 75-150 per kg; Shiprocket's blended
+    # "avg shipment cost" is Rs 36-45 per shipment. A <=500g parcel is ~Rs 45-55
+    # base, and fuel surcharge (10-12%) plus GST (18%) lands near this figure.
     shipping_forward_inr: float = 75.0
+    # [SOURCED, conservative] RTO is billed at 80-100% of forward freight. This
+    # is 113% of the forward figure above, i.e. slightly ABOVE the cited ceiling,
+    # so it overstates the cost of a miss. Left as-is and flagged.
     shipping_reverse_inr: float = 85.0
+    # [DERIVED] No public per-order figure. India BPO email/chat is $4-8 per
+    # agent-hour (~Rs 350-700/hr); a ~5 minute returns-exception touch is
+    # Rs 29-58.
     handling_inr: float = 40.0
-    # Fraction of order value actually lost. Not 1.0: some abuse returns come
-    # back as genuinely resaleable goods, some claims get rejected downstream.
+    # [ASSUMED] No public figure exists - it needs merchant-internal disposition
+    # data. Not 1.0 because some abuse returns come back resaleable and some
+    # claims are rejected downstream; not low, because the defining feature of
+    # this abuse is that the valuable item does not come back.
     product_loss_fraction: float = 0.72
+    #
+    # KNOWN OMISSION: COD collection fees ("Rs 40 or 2% of order value, whichever
+    # is higher") are not modelled. Including them would raise the false-negative
+    # cost, so the figure above understates true loss on that axis.
 
     # ---- False positive: we block / force-prepay a genuine customer ----
-    gross_margin_rate: float = 0.18         # margin forgone if the order is lost
-    prepay_abandon_prob: float = 0.34       # P(genuine COD customer abandons on forced prepay)
-    churn_prob_given_blocked: float = 0.22  # P(customer never returns after friction)
-    customer_residual_value_inr: float = 1450.0   # remaining gross profit of a retained customer
+    # [SOURCED, but read carefully] This is a CONTRIBUTION margin, not a gross
+    # margin - the field name is misleading and is documented rather than
+    # renamed. Indian platform gross margins are ~40-43%; apparel net margins
+    # are 12-18% and electronics 8-12%.
+    gross_margin_rate: float = 0.18
+    # [SOURCED, wide] COD carts abandon at 45-55% vs prepaid at 25-30%, an
+    # incremental ~20-25pp. Separately, D2C brands report 25-35% COD->prepaid
+    # conversion, implying 65-75% do not convert. Those two readings bracket
+    # 0.20-0.75; this sits in the lower-middle and is the least well-pinned
+    # false-positive input.
+    prepay_abandon_prob: float = 0.34
+    # [ASSUMED] No public figure for churn conditional on a payment-method block.
+    churn_prob_given_blocked: float = 0.22
+    # [ASSUMED] No public figure for remaining gross profit per retained Indian
+    # e-commerce customer at this granularity.
+    customer_residual_value_inr: float = 1450.0
 
     # ---- Manual review ----
-    review_cost_inr: float = 32.0           # analyst minutes, fully loaded
-    review_precision: float = 0.88          # analyst correctly resolves this share of queue
-    max_review_share: float = 0.05          # operating constraint: >5% to humans is not deployable
+    # [DERIVED] India BPO Rs 350-700/hr at a cited 8-15 fraud reviews per hour
+    # implies Rs 23-88 per review. This sits at the cheap/fast end.
+    review_cost_inr: float = 32.0
+    # [ASSUMED] Vendor-reported analyst accuracy is marketing material. Swept
+    # 70-95% in the sensitivity analysis.
+    review_precision: float = 0.88
+    # [OPERATING CONSTRAINT, not empirical] More than this share going to humans
+    # is not deployable. Swept 2-10%.
+    max_review_share: float = 0.05
 
     # Band edges are SELECTED on validation, these are only the search bounds.
     band_search_lo: Tuple[float, float] = (0.004, 0.60)

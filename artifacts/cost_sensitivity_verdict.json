@@ -1,0 +1,18 @@
+{
+  "n_worlds": 28,
+  "all_beat_single": true,
+  "all_beat_nothing": true,
+  "all_shipped_beat_single": true,
+  "all_shipped_beat_nothing": true,
+  "all_band_structures_survive": true,
+  "band_hi_min": 0.31666666666666665,
+  "band_hi_max": 0.6166666666666666,
+  "band_lo_min": 0.03456410256410256,
+  "band_lo_max": 0.08041025641025641,
+  "single_threshold_min": 0.1015625,
+  "single_threshold_max": 0.2033898305084746,
+  "max_regret_of_shipped_per_1000": 744.6611554984556,
+  "max_regret_world": "review_precision 70%",
+  "worlds_where_3band_loses_to_single": [],
+  "worlds_where_band_structure_collapses": []
+}
