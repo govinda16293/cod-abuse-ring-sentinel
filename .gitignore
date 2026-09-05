@@ -20,3 +20,5 @@ artifacts/*.parquet
 artifacts/band_sweep_*.csv
 # Second dataset built only by the flat-signup generator diagnostic.
 data_flat/
+# Recording aid for the pitch video, not part of the submission.
+docs/prompter.html

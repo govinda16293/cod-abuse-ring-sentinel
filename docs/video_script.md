@@ -5,6 +5,12 @@ Spoken lines are what I say out loud. `SCREEN:` is what is showing at that beat.
 Every number below is pulled from a file in `artifacts/` or `data/`. Do not round
 on camera. Do not say "roughly" or "about". Say the number.
 
+**Before you record.** Run `streamlit run app/streamlit_app.py`. If you want the
+language model to write the justification live, export `ANTHROPIC_API_KEY` first.
+Without a key the button still works and produces the deterministic template
+version, which demonstrates the same boundary. Say on camera which one you are
+showing.
+
 **One exception, flagged.** At 4:15 the pre-bugfix R2 recall of 0.918 and the
 pre-bugfix precision of 0.9153 are historical values recorded in `LOG.md` at the
 time. They are not re-derivable from the current artifacts, because the bug is
@@ -79,16 +85,25 @@ detail**.
 
 - This is what an analyst actually opens in the morning. Sorted by score.
 
-`SCREEN:` switch to **Order detail**, open a flagged order.
+`SCREEN:` switch to **Order detail**. It opens on order 239747 by default, which
+is the highest-scoring flagged order. Do not pick a different one on camera; every
+number below is that order's.
 
-- Calibrated probability at the top, and which band it fell into.
-- Then the evidence, straight from TreeSHAP. How many accounts are linked to this
-  one. How many new links formed in that cluster this week. How old the accounts
-  are.
-- Now the part I would want to see if I were the reviewer.
-- What this does not establish. The address matched by text normalisation, not by
-  geocoding. A normalisation error produces this same signal.
-- That is generated from the feature row by rule. I did not write it by hand.
+- Order 239747. Auto-action. Calibrated probability one point zero zero zero zero.
+- Four thousand one hundred and sixty-eight rupees, footwear, cash on delivery.
+- The evidence comes straight from TreeSHAP, rendered as plain sentences.
+- Four point five new account-to-account links formed in that cluster in the past
+  week. That is the strongest single contributor.
+- The account is forty-eight days old. It sits in an identity cluster of nine
+  linked accounts. The average account in that cluster is fifty-four days old.
+- The cluster placed the equivalent of five point seven orders in the past week.
+- The held-out label agrees, and the ring signature is R2, address fuzzing.
+- Now the part I would want to see if I were the reviewer. What this does not
+  establish.
+- For this order it says the account has no order history, so every behavioural
+  signal is absent and the score rests entirely on network structure.
+- That is generated from the feature row by rule. I did not write it by hand, and
+  it is the caveat that actually applies to this order.
 - And this is the justification the language model writes, from that payload
   only.
 - It has no path back into the decision. If I had asked a model "is this fraud",
