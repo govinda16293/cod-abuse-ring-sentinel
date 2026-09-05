@@ -351,3 +351,34 @@ behind it.
 
 The earlier LOG entries keep their original numbers, because they are a record of
 what I measured at the time. This entry is the correction.
+
+### 2026-09-05 - Streamlit Cloud build failed on the pins
+
+Deploy died in dependency install. Streamlit Community Cloud is running Python
+3.14.7; `pyarrow==17.0.0` and `pandas==2.2.3` have no cp314 wheels, so uv fell
+back to building from source and pyarrow's setup.py died on a missing
+`pkg_resources`.
+
+The pins are not the real problem though. The bigger one is that Cloud was being
+asked to install scikit-learn, lightgbm, shap, matplotlib, scipy and anthropic,
+and the deployed app imports none of them. It reads precomputed artifacts. Every
+one of those was build risk for zero benefit.
+
+Split the requirements:
+  requirements.txt           app runtime only, as floors: streamlit, pandas,
+                             numpy, pyarrow. This is what Cloud installs.
+  requirements-pipeline.txt  the exact pins that produced every reported metric,
+                             on Python 3.11.9. This is what run_all.py needs.
+
+Checked rather than assumed two things. First, what the app can actually reach:
+walked the import graph from app/streamlit_app.py through explain.py and
+features.py - shap and anthropic appear, but both are lazy imports inside
+functions the hosted app never enters without an API key, so omitting them does
+not break the explanation panel. Second, whether pyarrow has cp314 wheels at all
+before choosing a floor: pyarrow 25.0.1 lists Python 3.14 support, so `>=20`
+resolves to a wheel.
+
+Also fixed my own bug while doing it: the sed-style patch I used to prepend the
+header to requirements-pipeline.txt duplicated the whole package list, so the
+file briefly had twenty pins instead of ten. Caught it because the count looked
+wrong.

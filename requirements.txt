@@ -1,16 +1,18 @@
-# Pinned. shap and numpy are pinned as a PAIR: shap<=0.46 cannot import against
-# numpy>=2.2 (np.inexact dtype conversion was removed), so moving either one
-# alone breaks the attribution layer.
-numpy==2.4.6
-pandas==2.2.3
-pyarrow==17.0.0
-scikit-learn==1.5.2
-lightgbm==4.5.0
-shap==0.48.0
-matplotlib==3.9.2
-streamlit==1.39.0
-scipy==1.17.1
-# Optional: only needed for the LLM explanation writer. Without it (or without
-# ANTHROPIC_API_KEY) the pipeline falls back to a deterministic template writer
-# and everything else runs unchanged.
-anthropic==0.39.0
+# What the DEPLOYED Streamlit app needs, and nothing else.
+#
+# Streamlit Community Cloud installs this file and currently runs Python 3.14.7.
+# The exact pins that produced the reported metrics have no cp314 wheels, so
+# pinning them here makes the build fall back to source and fail on pyarrow and
+# pandas. Those pins live in requirements-pipeline.txt and are still what the
+# metrics were produced with.
+#
+# Floors rather than pins, so the resolver picks a wheel for whatever Python the
+# host runs. The app only reads precomputed artifacts, so the modelling stack is
+# deliberately absent: no scikit-learn, lightgbm, shap, matplotlib or scipy.
+# shap and anthropic are lazy imports inside functions the hosted app never
+# reaches, so leaving them out does not break the explanation panel; the LLM
+# button falls back to the deterministic template writer.
+streamlit>=1.39,<2
+pandas>=2.2,<4
+numpy>=2.0,<3
+pyarrow>=20

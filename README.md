@@ -440,7 +440,7 @@ And nothing here models an adversary that adapts once it is being detected.
 ## 7. How to run
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-pipeline.txt
 ```
 
 ```bash
@@ -478,6 +478,12 @@ The LLM explanation layer uses the Anthropic API when `ANTHROPIC_API_KEY` is set
 and falls back to a deterministic template writer otherwise, so the pipeline runs
 on a clean machine with no key and no network.
 
+Two requirements files, on purpose. `requirements-pipeline.txt` holds the exact
+versions that produced every metric above, on Python 3.11.9. `requirements.txt`
+holds only what the hosted Streamlit app needs, as version floors, because
+Streamlit Community Cloud runs a newer Python than the pins support and the app
+reads precomputed artifacts rather than training anything.
+
 ### Repo map
 
 | Path | What |
@@ -496,6 +502,8 @@ on a clean machine with no key and no network.
 | `docs/cost_model.md` | Cost constants vs published rate cards, with sources |
 | `docs/cost_sensitivity.md` | The 28-world table and verdict |
 | `docs/leakage_audit.md` | Per-feature placement-time audit |
+| `requirements-pipeline.txt` | Exact pins that produced every metric, Python 3.11.9 |
+| `requirements.txt` | App-only runtime, version floors, what Streamlit Cloud installs |
 | `LOG.md` | What broke, dated, in the order it broke |
 
 Everything is seeded from `src/config.py`, where each cost constant is tagged

@@ -1,0 +1,22 @@
+# Exact versions used to produce every metric in README.md, on Python 3.11.9.
+# Reproduce the pipeline with:  pip install -r requirements-pipeline.txt
+#
+# This is deliberately NOT the file Streamlit Community Cloud installs. Cloud
+# currently runs Python 3.14, which has no wheels for these pins, and the hosted
+# app needs none of the modelling stack anyway. See requirements.txt.
+#
+# shap and numpy are pinned as a PAIR: shap<=0.46 cannot import against
+# numpy>=2.2 (the np.inexact dtype conversion was removed), so moving either one
+# alone breaks the attribution layer.
+numpy==2.4.6
+pandas==2.2.3
+pyarrow==17.0.0
+scikit-learn==1.5.2
+lightgbm==4.5.0
+shap==0.48.0
+matplotlib==3.9.2
+streamlit==1.39.0
+scipy==1.17.1
+# Optional: only the LLM explanation writer uses it. Without it, or without
+# ANTHROPIC_API_KEY, the deterministic template writer runs instead.
+anthropic==0.39.0

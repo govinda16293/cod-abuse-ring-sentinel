@@ -1,7 +1,7 @@
 .PHONY: demo install clean ui quick
 
 install:
-	python -m pip install -r requirements.txt
+	python -m pip install -r requirements-pipeline.txt
 
 demo: install
 	python run_all.py
