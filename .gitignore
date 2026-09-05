@@ -9,10 +9,14 @@ data/*.npy
 !data/test_set.sha256
 artifacts/*.pkl
 artifacts/*.parquet
+# ...except the two the Streamlit app loads at startup. Streamlit Community
+# Cloud only has what is committed, so without these the deployed app stops at
+# "Missing artifacts". They are derived data and regenerable by run_all.py; they
+# are committed so the hosted demo works from a clean clone.
+!artifacts/scored_test.parquet
 # Regenerable derived outputs. Small metrics, curves and figures ARE committed so
 # a reviewer can read the results without running anything; these two are just
 # large intermediate dumps that run_all.py recreates.
-artifacts/explanation_payloads.json
 artifacts/band_sweep_*.csv
 # Second dataset built only by the flat-signup generator diagnostic.
 data_flat/
