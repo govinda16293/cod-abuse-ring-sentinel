@@ -12,18 +12,15 @@ checkable against the code.
 
 ## 1. The problem, and what it costs
 
-<!-- DRAFT — I am rewriting this section myself. -->
-
-A customer places a ₹4,000 cash-on-delivery order, takes delivery, files a
-"wrong item" return, and gets a cash refund at the door. The merchant has paid to
-ship the parcel out, paid to have it picked up again, and spent ops time on the
-case. What came back is not what went out.
-
-One customer doing that is a bad customer. Eleven accounts doing it over six
-weeks, sharing two devices and one flat between them, is a ring. Each account on
-its own looks unremarkable — few orders, nothing extreme. The evidence exists
-only in the relationships between the accounts, which is why rules built on a
-single account's history do not find it.
+I built this for one specific loss: a customer takes delivery of a
+cash-on-delivery order, files a wrong-item return, gets cash back at the door,
+and the goods that come back are worthless. A single customer doing that is just
+a bad customer, and I did not go after those. I went after rings, meaning groups
+of accounts running the same play together while sharing a device, a flat or a
+block of phone numbers, where every account looks ordinary on its own and the
+evidence only exists between them. On a ₹2,000 order a miss costs the merchant
+₹1,640 and a false alarm costs ₹441.40, so I chose the decision threshold on
+rupees instead of on F1.
 
 **What a miss costs**, per abusive COD order, from [`src/config.py`](src/config.py):
 
@@ -43,14 +40,14 @@ single account's history do not find it.
 | Churn (22% never return × ₹1,450 residual value) | ₹319 |
 | **False positive** | **₹319 + 0.061 V** |
 
-On a ₹2,000 order that is **₹1,640 for a miss against ₹441 for a false alarm**, a
-ratio of 3.7:1. F1 treats them as equal. That is why this repo picks its
-threshold on a cost curve instead, and it moves the operating point.
+On a ₹2,000 order that is **₹1,640 for a miss against ₹441.40 for a false
+alarm**, a ratio of 3.72:1. F1 treats them as equal. Picking the threshold on the
+cost curve moves the operating point.
 
 Each constant is re-derived against published Indian 3PL rate cards and category
-margin benchmarks in [docs/cost_model.md](docs/cost_model.md), with sources, and
-the ones with no public figure are marked as assumptions rather than dressed up.
-§3 reports what happens when they are wrong.
+margin benchmarks in [docs/cost_model.md](docs/cost_model.md), with sources. The
+five constants with no public figure are labelled as assumptions. §3 reports what
+happens when they are wrong.
 
 ## 2. What I built
 
@@ -261,11 +258,28 @@ system never misfires on those populations.
 
 ## 4. The correction
 
-<!-- PLACEHOLDER — I am writing the narrative for this section myself.
-     Tables below are final; numbers pulled from artifacts/metrics.json and
-     artifacts/flat_signup_diagnostic.json. -->
+I ran the temporal split as a second evaluation, training on months 1 to 12 and
+testing on months 13 to 18. Precision on the auto-action band fell from 0.9316 to
+0.3994, and the review queue grew from 2.32% to 9.72% of volume, past the 5%
+capacity the bands were selected under. I looked at where the false positives
+came from and found that 99.66% of the 2,065 of them were customers never seen in
+training, with a median tenure of 10.92 days and a median identity-component size
+of 1.00, so no graph links at all. I wrote that up as the main finding of the
+project.
 
-**As originally found** — temporal holdout, train months 1–12, test months 13–18:
+Then I checked my own generator, and found that order count per customer never
+scaled with how long the account had existed, so a customer who signed up five
+days before the window closed still drew a full allocation of orders and placed
+all of them inside those five days. That manufactured the exact population the
+model over-flags: brand-new accounts ordering fast with no identity links. I
+regenerated once with each customer's order rate scaled by their exposure to the
+window, and temporal precision came back to 0.9197 against a ring-grouped 0.9316,
+with the review queue at 0.70%. Most of the collapse I reported was my own bug;
+what survives is 0.0219 of PR-AUC and 0.0119 of precision over six months, and I
+left the original numbers standing beside the correction because the sequence is
+the point.
+
+**As originally found.** Temporal holdout, train months 1–12, test months 13–18:
 
 | Metric | Ring-grouped | Temporal (as reported) |
 |---|---|---|
@@ -278,15 +292,17 @@ system never misfires on those populations.
 | Review share | 2.32% | **9.72%** |
 | ₹ / 1,000 | 11,617 | 26,294 |
 
-Measured diagnosis, not conjecture: 99.3% of those false positives come from
-customers never seen in training (against 50.50% for legit temporal test orders
-generally), median tenure 12.6 days, median `comp_size` 1.00 — no identity links
-at all. The 99th percentile of legit-order scores moves from 0.068 to 0.694.
+The false-positive profile is persisted to
+`artifacts/flat_signup_diagnostic.json` under
+`temporal_false_positive_profile_ramped`: 2,065 false positives, 99.66% of them
+from customers never seen in training against 50.50% for legit temporal test
+orders generally, median tenure 10.92 days, median `comp_size` 1.00, median
+`comp_growth_d7` 0.0.
 
 **The flat-signup diagnostic that overturned it.** In the headline generator,
 order count per customer does not scale with how long the customer has existed,
 so a customer signing up five days before the window ends crams a full allocation
-of orders into those five days — manufacturing exactly the "brand-new account
+of orders into those five days, manufacturing exactly the "brand-new account
 ordering fast" population the model over-flags. Regenerated once with
 `flat_signup=True`, which scales each customer's order rate by the fraction of
 the window they were present for. Same seed, rings, hard negatives, label noise,
@@ -303,14 +319,14 @@ feature code, model and band-selection procedure. Writes to `data_flat/`.
 | Review share | 9.72% | **0.70%** | 2.32% |
 | ₹ / 1,000 | 26,294 | 8,841 | 11,617 |
 | R4_burst_value recall | 0.5101 | 0.6854 | 0.3755 |
-| Legit test orders from unseen customers | 50.50% | 31.17% | — |
-| Median tenure, legit test orders | 331.6 d | 649.6 d | — |
-| COD orders, month 1 → month 18 | 8,683 → 27,624 | 10,837 → 16,138 | — |
+| Legit test orders from unseen customers | 50.50% | 31.17% | n/a |
+| Median tenure, legit test orders | 331.6 d | 649.6 d | n/a |
+| COD orders, month 1 → month 18 | 8,683 → 27,624 | 10,837 → 16,138 | n/a |
 
 This is a generator diagnostic, not a headline result, and it changes no number
 in §3. It does read `data/` for the ramped side's descriptive statistics, but it
 never scores the ring-grouped frozen test set, fits nothing on it and selects no
-threshold from it — `data/test_set.sha256` is byte-identical before and after.
+threshold from it. `data/test_set.sha256` is byte-identical before and after.
 Reproduce with `python src/diagnostic_flat_signup.py`.
 
 **The base-rate gap, since it otherwise looks unexplained.** The ring-grouped
@@ -318,7 +334,7 @@ test samples groups uniformly across all 18 months and so inherits the
 dataset-wide COD abuse rate of 3.06% (3.18% after sampling). Months 13–18 alone
 run at 2.19%, because benign COD volume ramps 3.18× across the window while ring
 campaign starts stay uniform. Removing 746 COD orders belonging to straddling
-rings — 727 of them abusive — to keep rings non-crossing takes it the rest of the
+rings, 727 of them abusive, to keep rings non-crossing takes it the rest of the
 way to 1.58%.
 
 ## 5. What survives
@@ -357,7 +373,11 @@ the selected operating point sits at recall 0.8072.
 
 ## 6. Known limitations
 
-<!-- PLACEHOLDER — I am writing the preamble paragraph for this section myself. -->
+I went looking for these instead of waiting to be asked, and every one of them
+came out of checking my own work. Each item below is either measured against an
+artifact in this repo or labelled as an assumption I could not source. The four
+cost-model flaws are ones I found in my own constants and then chose to leave in
+place, for the reason given.
 
 Full list in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md). The items I would
 raise before anyone else does:
@@ -375,7 +395,7 @@ frozen test set:
 3. **COD collection fees are not modelled at all** ("₹40 or 2% of order value,
    whichever is higher"). This understates the cost of a miss, partly offsetting
    flaw 1.
-4. `prepay_abandon_prob = 0.34` sits inside a very wide sourced bracket — the two
+4. `prepay_abandon_prob = 0.34` sits inside a very wide sourced bracket. The two
    published readings imply anywhere from 0.20 to 0.75. It is the least
    well-pinned false-positive input.
 
@@ -390,7 +410,7 @@ not the constants. Derivation and sources: [docs/cost_model.md](docs/cost_model.
 **The frozen test set has been scored three times**: once pre-improvement, once
 post-improvement, and once after a unit test caught a bug in address
 normalisation. Only the last is reported. No threshold, band, feature set or
-hyperparameter was ever selected using it — the feature set was chosen on an
+hyperparameter was ever selected using it. The feature set was chosen on an
 out-of-period fold ending at month 12. But it is three looks, not one.
 
 **The improvement pass did not do what it was meant to.** I added 8 scale-free
@@ -413,7 +433,7 @@ test set.
 
 Three more, briefly. R2's 0.9767 recall is closer to a measure of my address
 normaliser matching my own address fuzzer than of the problem being easy. The
-hard negatives cover the failure modes I thought of, not the ones I did not —
+hard negatives cover the failure modes I thought of. They miss the ones I did not:
 bulk buyers, resellers at residential addresses, shared office delivery desks.
 And nothing here models an adversary that adapts once it is being detected.
 

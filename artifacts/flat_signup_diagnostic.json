@@ -101,5 +101,12 @@
   "unseen_customer_share_ramped": 0.5049707550980977,
   "unseen_customer_share_flat": 0.3116586787776892,
   "median_tenure_ramped": 331.5593566894531,
-  "median_tenure_flat": 649.6268920898438
+  "median_tenure_flat": 649.6268920898438,
+  "temporal_false_positive_profile_ramped": {
+    "n_false_positives": 2065,
+    "share_from_customers_unseen_in_training": 0.9966101694915255,
+    "median_tenure_days": 10.917523384094238,
+    "median_comp_size": 1.0,
+    "median_comp_growth_d7": 0.0
+  }
 }

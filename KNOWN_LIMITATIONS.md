@@ -66,10 +66,11 @@ On the headline (ramped) dataset the 5% manual-review capacity constraint is
 violated on the temporal holdout, and precision falls 2.3x. I reported that as
 the project's most important finding.
 
-Diagnosis (measured, not assumed): 99.3% of temporal false positives come from
-customers unseen in training, median tenure 12.6 days, median component size 1.00
-— no identity links at all. The model learned the R4 signature and applies it to
-a larger population of legitimate new accounts.
+Diagnosis, persisted to `artifacts/flat_signup_diagnostic.json` under
+`temporal_false_positive_profile_ramped`: of 2,065 temporal false positives,
+99.66% come from customers unseen in training, median tenure 10.92 days, median
+component size 1.00, median `comp_growth_d7` 0.0. The model learned the R4
+signature and applies it to a larger population of legitimate new accounts.
 
 Then I tested whether that larger population was real or manufactured. In the
 headline generator, order count per customer does not scale with how long the

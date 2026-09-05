@@ -107,6 +107,35 @@ def main():
     ns_flat, ten_flat = new_share(flat)
     ns_ramp, ten_ramp = new_share(ramped)
 
+    def fp_profile(df, tag):
+        """What the temporal false positives actually look like.
+
+        Persisted so the claims made about them in the README are checkable
+        against an artifact rather than against a script's stdout.
+        """
+        import pickle
+        with open(os.path.join(ARTIFACT_DIR, "model_%s.pkl" %
+                               ("temporal" if tag == "ramped" else "x")), "rb") as fh:
+            bundle = pickle.load(fh)
+        te = df.loc[df.temporal_split == "test"].reset_index(drop=True)
+        X = te[bundle["features"]].to_numpy(dtype="float32")
+        pr = bundle["calibrator"].predict_proba(X)[:, 1]
+        with open(os.path.join(ARTIFACT_DIR, "policy.json")) as fh:
+            hi = json.load(fh)["temporal"]["band_hi"]
+        tr = set(df.loc[df.temporal_split == "train", "customer_id"].unique().tolist())
+        fpm = (te[LABEL].to_numpy() == 0) & (pr >= hi)
+        sub = te.loc[fpm]
+        return dict(n_false_positives=int(fpm.sum()),
+                    share_from_customers_unseen_in_training=float(
+                        (~sub.customer_id.isin(tr)).mean()),
+                    median_tenure_days=float(sub.cust_tenure_days.median()),
+                    median_comp_size=float(sub.comp_size.median()),
+                    median_comp_growth_d7=float(sub.comp_growth_d7.median()))
+
+    fp_ramped = fp_profile(ramped, "ramped")
+    print("\n[flat] === temporal false-positive profile, ramped ===")
+    print(json.dumps(fp_ramped, indent=2))
+
     keys = ["n_orders", "n_abuse", "base_rate", "pr_auc", "precision_auto_action",
             "recall_auto_action", "review_share", "cost_per_1000_policy"]
     comp = pd.DataFrame([
@@ -140,7 +169,8 @@ def main():
                    "unseen_customer_share_ramped": ns_ramp,
                    "unseen_customer_share_flat": ns_flat,
                    "median_tenure_ramped": ten_ramp,
-                   "median_tenure_flat": ten_flat},
+                   "median_tenure_flat": ten_flat,
+                   "temporal_false_positive_profile_ramped": fp_ramped},
                   f, indent=2)
     print("\n[flat] wrote artifacts/flat_signup_diagnostic.{csv,json}")
 

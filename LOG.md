@@ -328,3 +328,26 @@ No further model or feature changes. Both additions are analysis-only:
 cost_sensitivity.py reads the validation fold, diagnostic_flat_signup.py writes
 to a separate data_flat/ directory. The frozen test set has still been scored
 three times, all before today.
+
+### 2026-09-05 - the false-positive profile numbers were stale
+
+While filling in the README I went to cite the temporal false-positive
+diagnosis and realised those three numbers (99.3% unseen, median tenure 12.6
+days, median comp_size 1.00) came from a throwaway script I ran BEFORE the
+address-normalisation bugfix and the final retrain. They were never persisted to
+an artifact, so nothing was checking them.
+
+Added the profile to `diagnostic_flat_signup.py` so it writes to
+`artifacts/flat_signup_diagnostic.json` under
+`temporal_false_positive_profile_ramped`. Against the shipped model the real
+numbers are: 2,065 false positives, 99.66% from customers unseen in training,
+median tenure 10.92 days, median comp_size 1.00, median comp_growth_d7 0.0.
+
+So 99.3% -> 99.66% and 12.6 days -> 10.92 days. The conclusion is unchanged and
+slightly stronger. Corrected in README.md and KNOWN_LIMITATIONS.md. Also dropped
+the "99th percentile of legit scores moves 0.068 to 0.694" claim, which came from
+the same unpersisted script and which I am not going to quote without an artifact
+behind it.
+
+The earlier LOG entries keep their original numbers, because they are a record of
+what I measured at the time. This entry is the correction.
