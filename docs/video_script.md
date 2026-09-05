@@ -1,142 +1,191 @@
 # 5-minute pitch video — script
 
-Target 5:00. Timings are cumulative. Numbers are read straight from
-`artifacts/metrics.json`; do not round anything up on camera.
+Spoken lines are what I say out loud. `SCREEN:` is what is showing at that beat.
+
+Every number below is pulled from a file in `artifacts/` or `data/`. Do not round
+on camera. Do not say "roughly" or "about". Say the number.
+
+**One exception, flagged.** At 4:15 the pre-bugfix R2 recall of 0.918 and the
+pre-bugfix precision of 0.9153 are historical values recorded in `LOG.md` at the
+time. They are not re-derivable from the current artifacts, because the bug is
+fixed and the model was retrained. If asked, say they are logged, not recomputed.
+Everything else is checkable against a file.
 
 ---
 
-## 0:00–0:45 — The problem (45s)
+## 0:00 – 0:45 · The problem, in rupees
 
-> A customer orders four thousand rupees of shoes, cash on delivery. They take
-> delivery, file a "wrong item" return, and get cash back at the door. The
-> merchant paid forward shipping, reverse pickup, and handling — and what comes
-> back is worthless.
->
-> Once, that's a bad customer. But do it with eleven accounts sharing two devices
-> and one flat, over six weeks, and it's a ring. Each account looks unremarkable
-> on its own. The pattern only exists *between* them.
->
-> So I built a defence-only detector for cash-on-delivery return abuse. It scores
-> COD orders, picks its threshold in rupees, and explains every flag.
+`SCREEN:` Streamlit **Order detail** tab, one flagged order open, evidence panel
+visible.
 
-*Screen: one abusive order in the UI, then the review-queue tab.*
+- A customer takes delivery of a cash-on-delivery order.
+- They file a wrong-item return and get cash back at the door.
+- The goods that come back are worthless.
+- The merchant paid to ship it out, paid to pick it up, and burned ops time.
+- On a two thousand rupee order, that miss costs one thousand six hundred and
+  forty rupees.
+- Wrongly blocking a real customer costs four hundred and forty-one rupees forty.
+- So the two errors are not equal. The ratio is three point seven two to one.
+- F1 assumes they are equal. That is why I did not use it.
+- One customer doing this is a bad customer. I did not go after those.
+- I went after rings. Groups of accounts running the same play, sharing a device
+  or a flat or a block of phone numbers.
+- Each account looks ordinary alone. The evidence only exists between them.
 
----
+## 0:45 – 1:45 · Architecture, walking the diagram
 
-## 0:45–1:45 — Architecture (60s)
+`SCREEN:` the ASCII diagram in `ARCHITECTURE.md`, then the `[leak] PASS` line in
+the terminal.
 
-> Six stages. Synthetic generator, point-in-time features, a calibrated boosted
-> tree, a cost policy, an explanation layer, and a UI.
->
-> The decision everything hangs off is this one. Every feature for an order at
-> time T uses only data from before T. Orders and returns are replayed as
-> timestamped events — a return only becomes visible at its return timestamp, not
-> its order timestamp. There is no global graph pass followed by a split, because
-> a global graph already contains edges built by test-set orders.
->
-> And I don't just claim that. This deletes every row after a cutoff date,
-> recomputes all sixty-three features from the truncated world, and requires
-> bit-identical output. If a feature had touched a future row, removing that row
-> would move it. All sixty-three features identical across two hundred and
-> seventy-three thousand orders — and this runs *before* any model is trained.
->
-> I chose LightGBM over a GNN deliberately. The graph is mostly stars and small
-> cliques, it's already summarised into fifteen as-of component features, and a
-> tree gives me exact TreeSHAP attribution I can defend feature by feature.
+- Six phases. Left to right on this diagram.
+- Orders and returns go in. They become timestamped events, replayed in order.
+- A return only becomes visible at its return timestamp, not at its order
+  timestamp.
+- That gives me a customer, device, address and phone graph as of each order.
+- Those features feed LightGBM, then isotonic calibration, and out comes a
+  probability.
+- The probability meets a cost curve in rupees, which picks three bands.
+- TreeSHAP explains each flag. The language model writes it up.
+- Here is the part I care about most.
+- There is no global graph pass followed by a split. A global graph already
+  contains edges built by test-set orders.
+- So I prove it instead of claiming it. This deletes every row after a cutoff
+  date and recomputes every feature from the truncated world.
+- If a feature had read a future row, deleting that row would move it.
+- Sixty-three features, bit-identical, across two hundred and seventy-two
+  thousand nine hundred and fifty-nine orders.
+- That runs as a gate before any model is trained.
+- Sixty-three features are computed. Forty-nine are used.
+- I chose LightGBM over a graph neural network on purpose. The graph is mostly
+  stars and small cliques. It is already summarised into about fifteen component
+  features. And a tree gives me exact attribution I can defend line by line.
+- The language model never sees the label and never sees the threshold. The
+  classifier decides. The model writes.
 
-*Screen: the ASCII diagram from ARCHITECTURE.md, then the `[leak] PASS` line.*
+## 1:45 – 3:15 · Live demo, real batch
 
----
+`SCREEN:` Streamlit, **Batch** tab first, then **Review queue**, then **Order
+detail**.
 
-## 1:45–3:15 — Live batch demo (90s)
+- This is the held-out test set. Forty-nine thousand nine hundred and five COD
+  orders, scored.
+- Ninety-four point nine two percent pass straight through as cash on delivery.
+- Two point three two percent go to a human queue.
+- Two point seven six percent get auto-actioned. That means forced to prepay.
+- The cut points are zero point zero three four three and zero point three four
+  four one. Both were chosen on validation, never on this test set.
 
-> Here's a batch of held-out orders, scored. Ninety-five percent pass straight
-> through. Two point three percent go to a human queue. Two point eight percent
-> get auto-actioned — forced to prepay.
->
-> Let's open a flagged one. Calibrated probability, the band it fell in, and the
-> evidence: this account sits in a cluster of seven linked accounts, four new
-> links formed in that cluster in the past week, average account age nine days.
->
-> Then the part I care about more — what this does *not* establish. The address
-> matched by text normalisation, not geocoding, so a normalisation error produces
-> this same signal. That's generated from the feature row by rule, not written by
-> hand.
->
-> And the language model writes this justification from that payload. It never
-> sees the label, never sees the threshold, and its output has no path back into
-> the decision. The classifier decides; the LLM writes. If I'd asked a model "is
-> this fraud", I'd have a second uncalibrated classifier wearing a justification
-> costume.
+`SCREEN:` switch to **Review queue**.
 
-*Screen: batch tab → order detail → evidence → caveats → generated justification.*
+- This is what an analyst actually opens in the morning. Sorted by score.
 
----
+`SCREEN:` switch to **Order detail**, open a flagged order.
 
-## 3:15–4:15 — Metrics and false-positive cost (60s)
+- Calibrated probability at the top, and which band it fell into.
+- Then the evidence, straight from TreeSHAP. How many accounts are linked to this
+  one. How many new links formed in that cluster this week. How old the accounts
+  are.
+- Now the part I would want to see if I were the reviewer.
+- What this does not establish. The address matched by text normalisation, not by
+  geocoding. A normalisation error produces this same signal.
+- That is generated from the feature row by rule. I did not write it by hand.
+- And this is the justification the language model writes, from that payload
+  only.
+- It has no path back into the decision. If I had asked a model "is this fraud",
+  I would have a second uncalibrated classifier wearing a justification costume.
 
-> On the frozen test set: PR-AUC point eight eight one. Precision point nine
-> three two, recall point eight zero seven at the operating point. Expected
-> calibration error, point zero zero one eight.
->
-> But the threshold isn't picked by F1. F1 assumes a false positive and a false
-> negative cost the same. They don't. On a two-thousand-rupee order, missing
-> abuse costs sixteen hundred and forty rupees. Wrongly blocking a real customer
-> costs four hundred and forty-one. Nearly four to one.
->
-> So I sweep the threshold on expected rupee cost. No detector: a hundred and
-> fifty-five thousand rupees per thousand COD orders. Switch COD off: four
-> hundred and sixty thousand — three times worse. This policy: eleven thousand
-> six hundred. A ninety-two point five percent reduction.
->
-> Now the table that matters. Recall by ring signature — and it inverts what I
-> expected. Address-fuzzing rings, ninety-eight percent. Phone-block rings, also
-> ninety-eight. But burst-value rings — thirty-eight percent. Those share *no*
-> identifier by construction. All that's left is "new account, COD, high value",
-> which is also an exact description of a legitimate first-time customer. That's
-> an information limit, not a modelling gap. Another forty-nine percent of them do
-> get routed to review, so it triages rather than missing them silently — but a
-> blended recall number would have hidden the whole thing.
+## 3:15 – 4:15 · Metrics
 
-*Screen: metrics tab, cost curve, then the recall-by-ring-type table.*
+`SCREEN:` Streamlit **Metrics** tab, then the cost curve, then the
+recall-by-ring-type table.
 
----
+- Start with the money, because that is the point.
+- No detector at all costs one hundred and fifty-five thousand four hundred and
+  one rupees per thousand COD orders.
+- Switching cash on delivery off entirely costs four hundred and sixty thousand
+  four hundred and fifty-six. Three times worse.
+- A single cost-optimal threshold costs twenty-five thousand nine hundred and
+  twenty-six.
+- The three-band policy I shipped costs eleven thousand six hundred and
+  seventeen. That is a ninety-two point five two percent reduction.
+- Underneath that: PR-AUC zero point eight eight zero nine. Precision zero point
+  nine three one six. Recall zero point eight zero seven two.
+- Calibration error zero point zero zero one eight, which is what lets me
+  threshold on the probability at all.
+- Now the obvious objection. That whole result rests on cost constants I picked.
+- Five of the eleven have no published figure anywhere. So I swept all of them.
+- Twenty-eight cost worlds. Both halves of each error cost at plus and minus
+  twenty-five and fifty percent. Reviewer accuracy seventy to ninety-five.
+  Review capacity two to ten percent.
+- Each one re-runs threshold and band selection from scratch, on validation.
+- The three-band structure survives in twenty-eight out of twenty-eight. It beats
+  the single threshold in twenty-eight out of twenty-eight. It beats doing
+  nothing in twenty-eight out of twenty-eight.
+- Worst case, if I tuned to the wrong costs, I lose seven hundred and forty-four
+  rupees sixty-six per thousand orders. That is zero point five three percent of
+  the loss the detector avoids.
+- One place it does break, and I will name it. Review capacity below two point
+  one three percent makes the shipped policy infeasible, not just worse.
 
-## 4:15–5:00 — What broke, and what's next (45s)
+`SCREEN:` recall-by-ring-type table.
 
-> Two things I'd want to be asked about.
->
-> First: I ran a second evaluation on a temporal holdout — train on months one to
-> twelve, test on thirteen to eighteen. Precision fell from point nine three two
-> to point three nine nine. I called that my headline finding. Then I checked
-> whether it was real — and mostly it wasn't. My generator gave every customer the
-> same order count regardless of signup date, so late signups crammed their orders
-> into a few days and manufactured exactly the population the model over-flags.
-> Regenerate with that fixed, and temporal precision comes back to point nine two.
-> About two points of PR-AUC of genuine six-month degradation survive, not
-> twenty-one. I reported the wrong version first and the correction is in the
-> README and the log.
->
-> Second: the cost model. Four constants carry the whole result, and five of the
-> eleven have no published figure anywhere — so I swept all of them, plus or minus
-> fifty percent, twenty-eight cost worlds, re-selecting thresholds from scratch
-> each time on validation. The three-band policy beats both baselines in all
-> twenty-eight. The only genuine breaking point is review capacity below two point
-> one three percent, where the shipped policy stops being feasible. The rate cards
-> I derived against are cited in the repo.
->
-> What I'd do next: recalibrate on a trailing window, monitor the new-account
-> segment's flag rate on its own, and replace address string-matching with real
-> delivery-point resolution. All of it's in LOG.md, dated, as it happened.
+- And this is the table I would not want hidden behind a single recall number.
+- Phone-block rings, zero point nine eight two eight. Address-fuzzing rings, zero
+  point nine seven six seven. Shared-device, zero point eight eight seven five.
+- Burst-value rings, zero point three seven five five. Another zero point four
+  nine four one go to human review.
+- Those share no identifier at all, by construction. All that is left is new
+  account, cash on delivery, above-average basket. That also describes a
+  legitimate first-time customer.
+- That is an information limit. The evidence is not in an order log.
 
-*Screen: temporal comparison table, then LOG.md scrolling.*
+## 4:15 – 5:00 · What broke
+
+`SCREEN:` `LOG.md`, scrolling, then the flat-signup comparison table in the
+README.
+
+- Two things broke, and both are in the log with dates.
+- First one. A unit test on my address normaliser failed. Four spellings of one
+  flat were producing two cluster keys.
+- The word "apt" was in both my filler list and my synonym list. I expanded
+  synonyms first. So "Apt 4B" turned into a building-name token instead of being
+  stripped as a prefix.
+- One physical door, two clusters, graph edge silently gone.
+- Address-fuzzing recall went from zero point nine one eight to zero point nine
+  seven six seven. Precision from zero point nine one five three to zero point
+  nine three one six.
+- I only found that because I tested the normaliser on its own. End to end, the
+  pipeline ran clean and the numbers looked fine.
+- Second one, and this is the bigger one.
+- I ran a temporal split. Train on months one to twelve, test on thirteen to
+  eighteen. Precision fell from zero point nine three one six to zero point three
+  nine nine four.
+- I diagnosed it. Ninety-nine point six six percent of the two thousand and
+  sixty-five false positives were customers never seen in training. Median tenure
+  ten point nine two days. Median cluster size one. No graph links at all.
+- I wrote that up as the main finding of the project.
+- Then I checked my own generator. Order count per customer never scaled with how
+  long the account had existed.
+- So someone who signed up five days before the window closed still drew a full
+  year of orders and placed all of them in those five days.
+- That manufactured exactly the population the model over-flags.
+- I regenerated once with that fixed. Precision came back to zero point nine one
+  nine seven.
+- Most of the collapse I reported was my own bug.
+- What survives is zero point zero two one nine of PR-AUC over six months, and
+  that is an upper bound.
+- I left the original number standing next to the correction, because the
+  sequence is the point.
 
 ---
 
 ## Delivery notes
 
-- Do not say "roughly" or "about" for any metric. Say the number.
-- The R4 inversion and the temporal collapse are the strongest content. Do not
-  cut them for time — cut the architecture section instead.
-- If asked "why not a GNN" in the interview, the answer is in
-  `src/train.py`'s docstring, not improvised.
+- Do not round. Do not say "roughly" or "about".
+- The strongest ninety seconds are 3:15 to 5:00. If you are running long, cut the
+  architecture beat, not the metrics or the correction.
+- If asked why not a GNN, the answer is the docstring at the top of
+  `src/train.py`. Do not improvise it.
+- If asked whether the test set was touched: it was scored three times, all
+  before the final freeze, and no threshold, band, feature set or hyperparameter
+  was ever selected on it.
