@@ -1,4 +1,6 @@
-# COD abuse-ring sentinel(https://cod-abuse-ring-sentinel-b8efmjweahf8hhlzwzmwuk.streamlit.app/)
+# COD abuse-ring sentinel
+
+[Live demo](https://cod-abuse-ring-sentinel-b8efmjweahf8hhlzwzmwuk.streamlit.app/) &middot; [Architecture](ARCHITECTURE.md) &middot; [Known limitations](KNOWN_LIMITATIONS.md) &middot; [Build log](LOG.md)
 
 A defence-only detector for cash-on-delivery return abuse. It scores COD orders,
 chooses its decision threshold by expected rupee cost, and emits a reviewable
